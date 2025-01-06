@@ -4,23 +4,34 @@
 
 const char* vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "\n"
+    "out vec3 vertexColor; // specify a color output to the fragment shader\n"
+    "\n"
     "void main()\n"
     "{\n"
     "   gl_Position = vec4(aPos.x, aPos.y + 0.25f, aPos.z, 1.0);\n"
+    "   vertexColor = aColor;\n"
     "}\0";
 
 const char* fragmentShaderSource = "#version 330 core\n"
     "out vec4 FragColor;\n"
+    "\n"
+    "in vec3 vertexColor; // the input variable from the vertex shader (same name and same type)\n"
+    "\n"
     "void main()\n"
     "{\n"
-    "   FragColor = vec4(1.0f, 1.0f, 0.2f, 1.0f);\n"
+    "   FragColor = vec4(vertexColor, 1.0);\n"
     "}\0";
 
 const char* fragmentShaderSource2 = "#version 330 core\n"
     "out vec4 FragColor;\n"
+    "\n"
+    "uniform vec4 ourColor; // we set this variable in the OpenGL code"
+    "\n"
     "void main()\n"
     "{\n"
-    "   FragColor = vec4(1.0f, 0.2f, 1.0f, 1.0f);\n"
+    "   FragColor = ourColor;\n"
     "}\0";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -61,44 +72,36 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // Define the vertices of the rectangle:
-    float vertices[] = {
-        0.5f, 0.5f, 0.0f,   // top right
-        0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f   // top left
-    };
-    unsigned int indices[] = {
-        0, 1, 3,    // first triangle
-        1, 2, 3     // second triangle
-    };
+    //float vertices[] = {
+    //    0.5f, 0.5f, 0.0f,   // top right
+    //    0.5f, -0.5f, 0.0f,  // bottom right
+    //    -0.5f, -0.5f, 0.0f, // bottom left
+    //    -0.5f, 0.5f, 0.0f   // top left
+    //};
+    //unsigned int indices[] = {
+    //    0, 1, 3,    // first triangle
+    //    1, 2, 3     // second triangle
+    //};
 
     float vertsTriangle1[] = {
-        -0.5f, 0.5f, 0.0f,  // top
-        -1.0f, -0.5f, 0.0f,  // bottom left
-        0.0f, -0.5f, 0.0f,   // bottom right
+        // positions        // colors
+        -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // top
+        -1.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
+         0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f  // bottom right
     };
 
     float vertsTriangle2[] = {
-        0.5f, 0.5f, 0.0f,   // top
-        0.0f, -0.5f, 0.0f,   // bottom left
-        1.0f, -0.5f, 0.0f    // bottom right
+        // positions       // colors (these are ignored by frag shader 2)
+        0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  // top
+        0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  // bottom left
+        1.0f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f   // bottom right
     };
 
     // Create the vertex buffers:
     unsigned int VBO;
     glGenBuffers(1, &VBO);
-    //glBindBuffer(GL_ARRAY_BUFFER, VBO); // GL_ARRAY_BUFFER = vertex buffer; any future buffer calls are applied to VBO
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertsTriangle1), vertsTriangle1, GL_STATIC_DRAW); // static draw = Data is sent only once and used many times. The GPU stores the data accordingly
     unsigned int VBO2;
     glGenBuffers(1, &VBO2);
-    //glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertsTriangle2), vertsTriangle2, GL_STATIC_DRAW);
-
-    // Create the element buffer:
-    //unsigned int EBO;
-    //glGenBuffers(1, &EBO);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // Create the vertex shader (just inlined atm):
     unsigned int vertexShader;
@@ -179,7 +182,7 @@ int main()
     glDeleteShader(fragmentShader2);
 
     // Tell OpenGL how it should interpret the vertex data that we passed to it:
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
     // Generate the VAOs (Vertex Array Objects):
     unsigned int VAO;
@@ -189,22 +192,28 @@ int main()
     // 1. Bind Vertex Array Object
     glBindVertexArray(VAO);
     // 2. Copy our vertices array in a buffer for OpenGL to use
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertsTriangle1), vertsTriangle1, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO); // GL_ARRAY_BUFFER = vertex buffer; any future buffer calls are applied to VBO
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertsTriangle1), vertsTriangle1, GL_STATIC_DRAW); // static draw = Data is sent only once and used many times. The GPU stores the data accordingly
     // 3. Copy our index array in an element buffer for OpenGL to use
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     // 4. Then set our vertex attributes pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    // color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     unsigned int VAO2;
     glGenVertexArrays(1, &VAO2);
     glBindVertexArray(VAO2);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertsTriangle2), vertsTriangle2, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -212,15 +221,22 @@ int main()
         processInput(window);
 
         // rendering commands here
-        // background:
+        // clear & set background:
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        // shape:
+        // update color (of the second triangle only):
+        float timeValue = glfwGetTime();
+        float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+        int vertexColorLocation = glGetUniformLocation(shaderProgram2, "ourColor"); // returns -1 if it can't find the thing
+
+        // draw shapes:
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+
         glUseProgram(shaderProgram2);
+        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f); // must call this AFTER glUseProgram() because it sets the uniform on the currently active shader program
         glBindVertexArray(VAO2);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         
