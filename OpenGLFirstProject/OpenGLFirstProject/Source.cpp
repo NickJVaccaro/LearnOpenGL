@@ -91,6 +91,9 @@ int main()
         // use our shader:
         ourShader.use();
 
+        // Apply offset:
+        ourShader.setFloat("offset", 0.25f);
+
         // draw shapes:
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
