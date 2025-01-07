@@ -2,8 +2,14 @@
 #include <GLFW/glfw3.h>
 
 #include "Shader.h"
+#include "stb_image.h"
 
+#include <algorithm>
 #include <iostream>
+
+float mix = 0.2f;
+bool upPressed = false;
+bool downPressed = false;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -14,6 +20,21 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        if (!upPressed)
+            mix = std::max(0.0f, std::min(mix + 0.2f, 1.0f));
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        if(!downPressed)
+            mix = std::max(0.0f, std::min(mix - 0.2f, 1.0f));
+    }
+
+    upPressed = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
+    downPressed = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;
 }
 
 int main()
@@ -42,41 +63,94 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    float vertsTriangle[] = {
-        // positions        // colors
-         0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // top
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
-         0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f  // bottom right
+    float verts[] = {
+        // positions          // colors           // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.9f, 0.9f,   // top right
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.9f, 0.1f,   // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.1f, 0.1f,   // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.1f, 0.9f    // top left 
+    };
+    unsigned int indices[] = {
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
     };
 
-    // Create the vertex buffers:
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    unsigned int VBO2;
-    glGenBuffers(1, &VBO2);
+    unsigned int VBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO); // vertex array object - Container for everything below
+    glGenBuffers(1, &VBO); // vertex buffer object - Actually stores the vertex info
+    glGenBuffers(1, &EBO); // element array buffer object - Stores the indices of which vertices to draw
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     Shader ourShader("./shader.vert", "./shader.frag");
 
-    // Generate the VAOs (Vertex Array Objects):
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-
-    // Initialization code:
-    // 1. Bind Vertex Array Object
-    glBindVertexArray(VAO);
-    // 2. Copy our vertices array in a buffer for OpenGL to use
-    glBindBuffer(GL_ARRAY_BUFFER, VBO); // GL_ARRAY_BUFFER = vertex buffer; any future buffer calls are applied to VBO
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertsTriangle), vertsTriangle, GL_STATIC_DRAW); // static draw = Data is sent only once and used many times. The GPU stores the data accordingly
-    // 3. Copy our index array in an element buffer for OpenGL to use
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    // 4. Then set our vertex attributes pointers
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    // texture coords attribute
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    // -- Texture --
+    // Generate & bind the texture
+    unsigned int texture1;
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+
+    // Set up options
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // Load & Generate the texture
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else 
+    {
+        std::cout << "Failed to load texture1" << std::endl;
+    }
+
+    unsigned int texture2;
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    stbi_set_flip_vertically_on_load(true);
+    data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture2" << std::endl;
+    }
+    
+    // Free the memory, we're done with the image data
+    stbi_image_free(data);
+
+    ourShader.use();
+    ourShader.setInt("texture2", 1);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -88,15 +162,16 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // use our shader:
-        ourShader.use();
-
-        // Apply offset:
-        ourShader.setFloat("offset", 0.25f);
-
         // draw shapes:
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        ourShader.setFloat("mixVal", mix);
+
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
         //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
