@@ -173,6 +173,13 @@ int main()
         trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
         trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
 
+        // Exercise 1: Swap translation & rotation, and explain why what happens happens
+        // A: The entire box is rotating around a central point, instead of rotating around itself.
+        // This is because matrix multiplication is not commutative, and we are applying the rotation and THEN translating
+        // so the rotation is still around the original central point, then the box is moved
+            //trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+            //trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+
         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
         // draw shapes:
@@ -184,6 +191,14 @@ int main()
         ourShader.setFloat("mixVal", mix);
 
         glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        // Exercise 2: Draw a second container, but place it elsewhere using transformations only, and make it scale instead of rotate
+        trans = glm::mat4(1.0f);
+        trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.0f));
+        float scale = glm::sin((float)glfwGetTime());
+        trans = glm::scale(trans, glm::vec3(scale, scale, 1.0f));
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         // check and call events and swap the buffers
