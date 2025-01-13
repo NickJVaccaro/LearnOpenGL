@@ -5,6 +5,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
+#include "Camera.h"
 #include "stb_image.h"
 
 #include <algorithm>
@@ -12,11 +13,21 @@
 
 float mix = 0.2f; // Not used anymore
 
-glm::mat4 view;
-bool upPressed = false;
-bool downPressed = false;
-bool rightPressed = false;
-bool leftPressed = false;
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+bool firstMouse = true;
+float lastX = 400, lastY = 300;
+float pitch = 0;
+float yaw = -90.0f;
+
+float fov = 45.0f;
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -25,37 +36,45 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow* window)
 {
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    const float cameraSpeed = 5.0f * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (firstMouse)
     {
-        if (!upPressed)
-            view = glm::translate(view, glm::vec3(0.0f, -1.0f, 0.0f));
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        if (!downPressed)
-            view = glm::translate(view, glm::vec3(0.0f, 1.0f, 0.0f));
-    }
+    float xOffset = xpos - lastX;
+    float yOffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
 
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    {
-        if (!rightPressed)
-            view = glm::translate(view, glm::vec3(-1.0f, 0.0f, 0.0f));
-    }
+    camera.ProcessMouseMovement(xOffset, yOffset);
+}
 
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    {
-        if (!leftPressed)
-            view = glm::translate(view, glm::vec3(1.0f, 0.0f, 0.0f));
-    }
-
-    upPressed = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
-    downPressed = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;
-    rightPressed = glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
-    leftPressed = glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
+void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
+{
+    camera.ProcessMouseScroll(yOffset);
 }
 
 int main()
@@ -82,6 +101,11 @@ int main()
 
     glViewport(0, 0, 800, 600);
     glEnable(GL_DEPTH_TEST);
+
+    // Capture mouse & set up mouse event callback
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -217,13 +241,9 @@ int main()
 
     unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
 
-    // Time for some 3D!
-    //glm::mat4 view = glm::mat4(1.0f); // This is the camera, we want to move it backward (hence, move the entire view forward)
-    view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    glm::mat4 projection; // This is the projection - nothing fancy here. 800/600 ratio, near clip is 0.1, far clip is 100
-    projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-
+    glm::mat4 view;
+    glm::mat4 projection;
+    
     // 3D uniforms:
     unsigned int viewLoc = glGetUniformLocation(ourShader.ID, "view");
     unsigned int projectionLoc = glGetUniformLocation(ourShader.ID, "projection");
@@ -245,7 +265,9 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture2);
 
         // Pass in our 3D stuffs:
-        //view = glm::translate(view, glm::vec3(0.0f, viewY, -3.0f));
+        view = camera.GetViewMatrix();
+        projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f);
+
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
