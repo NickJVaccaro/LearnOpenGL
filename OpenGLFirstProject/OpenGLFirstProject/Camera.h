@@ -28,6 +28,9 @@ public:
     glm::vec3 Right;
     glm::vec3 WorldUp;
 
+    glm::vec3 WorldForward = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 WorldRight = glm::vec3(1.0f, 0.0f, 0.0f);
+
     // Euler angles
     float Yaw;
     float Pitch;
@@ -59,17 +62,21 @@ public:
 
     glm::mat4 GetViewMatrix()
     {
-        return glm::lookAt(Position, Position + Front, Up);
+        //return glm::lookAt(Position, Position + Front, Up);
+        return customLookAt(Position, Position + Front, Up);
     }
 
     // Process input received from any keyboard-like input system
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
+        // "Camera" chapter exercise 1 is to move along a plane as in a traditional FPS.
+        // Answer: Instead of moving along the camera's forward, we move along the cross of the camera's right and the world up,
+        // because that gives us the world forward in the direction we're facing
         float velocity = MovementSpeed * deltaTime;
         if (direction == FORWARD)
-            Position += Front * velocity;
+            Position += glm::normalize(glm::cross(-Right, WorldUp)) * velocity;
         if (direction == BACKWARD)
-            Position -= Front * velocity;
+            Position -= glm::normalize(glm::cross(-Right, WorldUp)) * velocity;
         if (direction == LEFT)
             Position -= Right * velocity;
         if (direction == RIGHT)
@@ -116,6 +123,29 @@ private:
         Front = glm::normalize(front);
         Right = glm::normalize(glm::cross(Front, WorldUp));
         Up = glm::normalize(glm::cross(Right, Front));
+    }
+
+    glm::mat4 customLookAt(glm::vec3 position, glm::vec3 target, glm::vec3 worldUp)
+    {
+        // Exercise 2 is to creatre our own lookat matrix
+        glm::vec3 zAxis = glm::normalize(position - target);
+        glm::vec3 xAxis = glm::normalize(glm::cross(glm::normalize(worldUp), zAxis));
+        glm::vec3 yAxis = glm::cross(zAxis, xAxis);
+
+        // Important note!! (because I screwed this up)
+        // Matrix definitions are along COLUMNS, not rows.
+        glm::mat4 rotMatrix = glm::mat4(xAxis.x, yAxis.x, zAxis.x, 0,
+                                        xAxis.y, yAxis.y, zAxis.y, 0,
+                                        xAxis.z, yAxis.z, zAxis.z, 0,
+                                        0,       0,       0,       1);
+        
+        glm::mat4 posMatrix = glm::mat4(1, 0, 0, 0,
+                                        0, 1, 0, 0,
+                                        0, 0, 1, 0,
+                                        -position.x, -position.y, -position.z, 1);
+
+        glm::mat4 lookAt = rotMatrix * posMatrix;
+        return lookAt;
     }
 };
 #endif
