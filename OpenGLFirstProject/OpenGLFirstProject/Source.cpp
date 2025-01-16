@@ -185,12 +185,15 @@ int main()
 
     // Assign anything that doesn't change
     ourShader.use();
-    ourShader.setVec3("lightPos", lightPos);
+    
 
     while (!glfwWindowShouldClose(window))
     {
         // input
         processInput(window);
+
+        // Exercise 1: Move the light source around the scene over time
+        lightPos = glm::vec3(1.2f, glm::sin(glfwGetTime()), 2.0f);
 
         // rendering commands here
         // clear & set background:
@@ -213,6 +216,7 @@ int main()
         model = glm::translate(model, cubePosition);
         //model = glm::rotate(model, glm::radians(20.0f), glm::vec3(1.0f, 0.3f, 0.5f));
         ourShader.setMat4("model", model);
+        ourShader.setVec3("lightPos", lightPos);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Second shader, which renders the light source (as a lil mini cube)
@@ -220,6 +224,8 @@ int main()
         lightShader.setMat4("view", camera.GetViewMatrix());
         lightShader.setMat4("projection", projection);
         lightShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
+
+        
 
         glBindVertexArray(lightVAO);
         model = glm::mat4(1.0);
