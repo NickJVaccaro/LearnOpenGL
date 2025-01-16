@@ -1,7 +1,8 @@
 #version 330 core
 
 in vec3 FragPos;
-in vec3 Normal;
+in vec3 FragCol;
+//in vec3 Normal;
 
 out vec4 FragColor;
 
@@ -14,11 +15,12 @@ uniform vec3 viewPos;
 
 void main()
 {
+    FragColor = vec4(FragCol * objectColor, 1.0);
+
+    /*
     // Common vars
     vec3 norm = normalize(Normal);
-    // Exercise 3: Also make sure to update the light position (and down below, the viewDir)
-    vec3 viewLightPos = vec3(view * vec4(lightPos, 1.0));
-    vec3 lightDir = normalize(viewLightPos - FragPos);
+    vec3 lightDir = normalize(lightPos - FragPos);
 
     // Ambient Light
     float ambientStrength = 0.1f;
@@ -41,4 +43,5 @@ void main()
     // Resultant Color
     vec3 result = (ambient + diffuse + specular) * objectColor;
     FragColor = vec4(result, 1.0);
+    */
 }
