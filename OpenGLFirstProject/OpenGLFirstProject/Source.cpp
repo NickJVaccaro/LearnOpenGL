@@ -150,6 +150,17 @@ int main()
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
+    // Exercise 2: Create some real materials from http://devernay.free.fr/cours/opengl/materials.html
+    float cyanPlastic[] = {
+        0.0f, 0.1f, 0.06f, // amb
+        0.0f, 0.5098f, 0.5098f, // diff
+        0.502f, 0.502f, 0.502f, // spec
+        0.25f // shin
+    };
+    
+    float ruby[] = { 0.1745f, 0.01175f, 0.01175f, 0.614f, 0.041f, 0.041f, 0.728f, 0.627f, 0.627f, 0.6f };
+    float silver[] = { 0.19225, 0.19225, 0.19225, 0.50754, 0.50754, 0.50754, 0.508273, 0.508273, 0.508273, 0.4 };
+
     // Position of cube
     glm::vec3 cubePosition = glm::vec3(0.0, 0.5, 0.0);
 
@@ -185,10 +196,11 @@ int main()
 
     // Assign anything that doesn't change
     ourShader.use();
-    ourShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-    ourShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-    ourShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-    ourShader.setFloat("material.shininess", 32.0f);
+    float* curMaterial = silver;
+    ourShader.setVec3("material.ambient", curMaterial[0], curMaterial[1], curMaterial[2]);
+    ourShader.setVec3("material.diffuse", curMaterial[3], curMaterial[4], curMaterial[5]);
+    ourShader.setVec3("material.specular", curMaterial[6], curMaterial[7], curMaterial[8]);
+    ourShader.setFloat("material.shininess", curMaterial[9]);
 
     ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
     ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
@@ -216,17 +228,6 @@ int main()
         ourShader.setVec3("viewPos", camera.Position);
         ourShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
 
-        // Update the light color
-        /*lightColor.x = sin(glfwGetTime() * 2.0f);
-        lightColor.y = sin(glfwGetTime() * 0.7f);
-        lightColor.z = sin(glfwGetTime() * 1.3f);
-
-        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
-
-        ourShader.setVec3("light.ambient", ambientColor);
-        ourShader.setVec3("light.diffuse", diffuseColor);*/
-
         glBindVertexArray(VAO);
         model = glm::mat4(1.0f);
         model = glm::translate(model, cubePosition);
@@ -238,7 +239,7 @@ int main()
         lightShader.use();
         lightShader.setMat4("view", camera.GetViewMatrix());
         lightShader.setMat4("projection", projection);
-        lightShader.setVec3("lightColor", diffuseColor); // Exercise 1: Change light object color to match light color
+        lightShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
 
         glBindVertexArray(lightVAO);
         model = glm::mat4(1.0);
