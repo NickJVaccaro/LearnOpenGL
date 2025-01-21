@@ -217,7 +217,10 @@ int main()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, loadTexture("container2.png"));
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, loadTexture("container2_specular.png"));
+    // Exercise 3: Use a colored spec map
+    glBindTexture(GL_TEXTURE_2D, loadTexture("container2_specular_color.png"));
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, loadTexture("matrix.jpg"));
 
     // Define our common vars
     glm::mat4 view;
@@ -228,6 +231,7 @@ int main()
     ourShader.use();
     ourShader.setInt("material.diffuse", 0);
     ourShader.setInt("material.specular", 1);
+    ourShader.setInt("material.emission", 2);
     ourShader.setFloat("material.shininess", 64);
 
     ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
