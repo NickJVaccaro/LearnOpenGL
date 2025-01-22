@@ -183,8 +183,21 @@ int main()
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
     };
 
+    glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f,  0.0f,  0.0f),
+        glm::vec3(2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3(2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f),
+        glm::vec3(1.5f,  2.0f, -2.5f),
+        glm::vec3(1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
+
     // Position of cube
-    glm::vec3 cubePosition = glm::vec3(0.0, 0.5, 0.0);
+    //glm::vec3 cubePosition = glm::vec3(0.0, 0.5, 0.0);
 
     // Set up our shaders
     Shader ourShader("./shader.vert", "./shader.frag");
@@ -225,7 +238,6 @@ int main()
     // Define our common vars
     glm::mat4 view;
     glm::mat4 projection;
-    glm::mat4 model;
 
     // Assign anything that doesn't change
     ourShader.use();
@@ -234,6 +246,7 @@ int main()
     ourShader.setInt("material.emission", 2);
     ourShader.setFloat("material.shininess", 64);
 
+    ourShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
     ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
     ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
     ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
@@ -261,14 +274,21 @@ int main()
         ourShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
 
         glBindVertexArray(VAO);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePosition);
-        ourShader.setMat4("model", model);
-        ourShader.setVec3("light.position", lightPos);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        for (unsigned int i = 0; i < 10; i++)
+        {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            //std::cout << "Cube position " << i << ": " << cubePositions[i].x << ", " << cubePositions[i].y << ", " << cubePositions[i].z << std::endl;
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            ourShader.setMat4("model", model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         // Second shader, which renders the light source (as a lil mini cube)
-        lightShader.use();
+        /*lightShader.use();
         lightShader.setMat4("view", camera.GetViewMatrix());
         lightShader.setMat4("projection", projection);
         lightShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
@@ -278,7 +298,7 @@ int main()
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2));
         lightShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawArrays(GL_TRIANGLES, 0, 36);*/
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
