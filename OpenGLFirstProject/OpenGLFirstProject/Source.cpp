@@ -246,14 +246,15 @@ int main()
     ourShader.setInt("material.emission", 2);
     ourShader.setFloat("material.shininess", 64);
 
-    //ourShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
     ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
     ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
     ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
     ourShader.setFloat("light.constant", 1.0f);
-    ourShader.setFloat("light.linear", 0.09f);
-    ourShader.setFloat("light.quadratic", 0.032f);
+    ourShader.setFloat("light.linear", 0.045f);
+    ourShader.setFloat("light.quadratic", 0.0075f);
+    ourShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+    ourShader.setFloat("light.outerCutOff", glm::cos(glm::radians(13.5f)));
 
     lightShader.use();
     lightShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
@@ -277,7 +278,9 @@ int main()
         ourShader.setMat4("projection", projection);
         ourShader.setVec3("viewPos", camera.Position);
         ourShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
-
+        ourShader.setVec3("light.position", camera.Position);
+        ourShader.setVec3("light.direction", camera.Front);
+        
         glBindVertexArray(VAO);
 
         for (unsigned int i = 0; i < 10; i++)
