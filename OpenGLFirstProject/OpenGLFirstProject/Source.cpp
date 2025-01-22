@@ -246,12 +246,17 @@ int main()
     ourShader.setInt("material.emission", 2);
     ourShader.setFloat("material.shininess", 64);
 
-    ourShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
+    //ourShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
     ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
     ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
     ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
-    glm::vec3 lightColor;
+    ourShader.setFloat("light.constant", 1.0f);
+    ourShader.setFloat("light.linear", 0.09f);
+    ourShader.setFloat("light.quadratic", 0.032f);
+
+    lightShader.use();
+    lightShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
 
     while (!glfwWindowShouldClose(window))
     {
@@ -288,17 +293,16 @@ int main()
         }
 
         // Second shader, which renders the light source (as a lil mini cube)
-        /*lightShader.use();
+        lightShader.use();
         lightShader.setMat4("view", camera.GetViewMatrix());
         lightShader.setMat4("projection", projection);
-        lightShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
-
+        
         glBindVertexArray(lightVAO);
-        model = glm::mat4(1.0);
+        glm::mat4 model = glm::mat4(1.0);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2));
         lightShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);*/
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
