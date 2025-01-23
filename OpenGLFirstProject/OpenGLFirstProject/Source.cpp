@@ -196,8 +196,12 @@ int main()
         glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
-    // Position of cube
-    //glm::vec3 cubePosition = glm::vec3(0.0, 0.5, 0.0);
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3(0.7f,  0.2f,  2.0f),
+        glm::vec3(2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3(0.0f,  0.0f, -3.0f)
+    };
 
     // Set up our shaders
     Shader ourShader("./shader.vert", "./shader.frag");
@@ -230,8 +234,7 @@ int main()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, loadTexture("container2.png"));
     glActiveTexture(GL_TEXTURE1);
-    // Exercise 3: Use a colored spec map
-    glBindTexture(GL_TEXTURE_2D, loadTexture("container2_specular_color.png"));
+    glBindTexture(GL_TEXTURE_2D, loadTexture("container2_specular.png"));
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, loadTexture("matrix.jpg"));
 
@@ -246,18 +249,38 @@ int main()
     ourShader.setInt("material.emission", 2);
     ourShader.setFloat("material.shininess", 64);
 
-    ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-    ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-    ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+    ourShader.setVec3("dirLight.direction", -0.2, -1.0, -0.2);
+    ourShader.setVec3("dirLight.ambient", 0.05, 0.05, 0.05);
+    ourShader.setVec3("dirLight.diffuse", 0.4, 0.4, 0.4);
+    ourShader.setVec3("dirLight.specular", 1.0, 1.0, 1.0);
 
-    ourShader.setFloat("light.constant", 1.0f);
-    ourShader.setFloat("light.linear", 0.045f);
-    ourShader.setFloat("light.quadratic", 0.0075f);
-    ourShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
-    ourShader.setFloat("light.outerCutOff", glm::cos(glm::radians(13.5f)));
+    for (unsigned int i = 0; i < 4; i++)
+    {
+        std::string array = "pointLights[" + std::to_string(i) + "]";
+        ourShader.setVec3(array + ".position", pointLightPositions[i]);
+
+        ourShader.setVec3(array +".ambient", 0.05f, 0.05f, 0.05f);
+        ourShader.setVec3(array + ".diffuse", 0.5f, 0.5f, 0.5f);
+        ourShader.setVec3(array + ".specular", 1.0f, 1.0f, 1.0f);
+
+        ourShader.setFloat(array + ".constant", 1.0f);
+        ourShader.setFloat(array + ".linear", 0.09f);
+        ourShader.setFloat(array + ".quadratic", 0.032f);
+    }
+    
+    ourShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
+    ourShader.setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f);
+    ourShader.setVec3("spotLight.specular", 1.0, 1.0, 1.0);
+
+    ourShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5)));
+    ourShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5)));
+    ourShader.setFloat("spotLight.constant", 1.0f);
+    ourShader.setFloat("spotLight.linear", 0.09f);
+    ourShader.setFloat("spotLight.quadratic", 0.032f);
 
     lightShader.use();
     lightShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
+    
 
     while (!glfwWindowShouldClose(window))
     {
@@ -266,7 +289,7 @@ int main()
 
         // rendering commands here
         // clear & set background:
-        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Figure out projection matrix based on current zoom
@@ -278,8 +301,8 @@ int main()
         ourShader.setMat4("projection", projection);
         ourShader.setVec3("viewPos", camera.Position);
         ourShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
-        ourShader.setVec3("light.position", camera.Position);
-        ourShader.setVec3("light.direction", camera.Front);
+        ourShader.setVec3("spotLight.position", camera.Position);
+        ourShader.setVec3("spotLight.direction", camera.Front);
         
         glBindVertexArray(VAO);
 
@@ -301,12 +324,16 @@ int main()
         lightShader.setMat4("projection", projection);
         
         glBindVertexArray(lightVAO);
-        glm::mat4 model = glm::mat4(1.0);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2));
-        lightShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        for (unsigned int i = 0; i < 4; i++)
+        {
+            glm::mat4 model = glm::mat4(1.0);
+            model = glm::translate(model, pointLightPositions[i]);
+            model = glm::scale(model, glm::vec3(0.2));
+            lightShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+        
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
