@@ -95,6 +95,7 @@ int main()
 
     glViewport(0, 0, 800, 600);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 
     // Capture mouse & set up mouse event callback
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -183,6 +184,13 @@ int main()
         // Draw the bagpag
         glm::mat4 model = glm::mat4(1.0);
         model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0));
+        model = glm::scale(model, glm::vec3(1.0, 1.0, 1.0));
+        ourShader.setMat4("model", model);
+        bagpag.Draw(ourShader);
+
+        // Draw a second bagpag, I'm gonna use this for depth testing since I wrote all that dang code the past 3 days
+        model = glm::mat4(1.0);
+        model = glm::translate(model, glm::vec3(0.0, 0.0, -3.0));
         model = glm::scale(model, glm::vec3(1.0, 1.0, 1.0));
         ourShader.setMat4("model", model);
         bagpag.Draw(ourShader);
