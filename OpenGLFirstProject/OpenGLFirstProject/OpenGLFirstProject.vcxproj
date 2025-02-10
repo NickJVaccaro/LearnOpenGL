@@ -161,6 +161,7 @@
     <None Include="lightsource.vert" />
     <None Include="shader.frag" />
     <None Include="shader.vert" />
+    <None Include="shaderSingleColor.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\corgis.jpg" />

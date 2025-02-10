@@ -55,6 +55,9 @@
     <None Include="lightsource.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="shaderSingleColor.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\corgis.jpg">

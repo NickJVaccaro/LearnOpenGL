@@ -71,6 +71,9 @@ void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
     camera.ProcessMouseScroll(yOffset);
 }
 
+void drawModel(Model objModel, Shader shader, glm::vec3 position, float scale);
+void setupShader(Shader shader);
+
 int main()
 {
     glfwInit();
@@ -96,6 +99,8 @@ int main()
     glViewport(0, 0, 800, 600);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
 
     // Capture mouse & set up mouse event callback
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -116,6 +121,7 @@ int main()
     // Set up our shaders
     Shader ourShader("./shader.vert", "./shader.frag");
     Shader lightShader("./lightsource.vert", "./lightsource.frag");
+    Shader outlineShader("./shader.vert", "./shaderSingleColor.frag");
 
     // Define our common vars
     glm::mat4 view;
@@ -165,35 +171,37 @@ int main()
         processInput(window);
 
         // rendering commands here
+        glEnable(GL_DEPTH_TEST);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
         // clear & set background:
         glClearColor(0.1f, 0.5f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Figure out projection matrix based on current zoom
-        projection = glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         // First shader, which renders the colored cube
         ourShader.use();
-        ourShader.setMat4("view", camera.GetViewMatrix());
-        ourShader.setMat4("projection", projection);
-        ourShader.setVec3("viewPos", camera.Position);
+        setupShader(ourShader);
         ourShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
         ourShader.setVec3("spotLight.position", camera.Position);
         ourShader.setVec3("spotLight.direction", camera.Front);
 
-        // Draw the bagpag
-        glm::mat4 model = glm::mat4(1.0);
-        model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0));
-        model = glm::scale(model, glm::vec3(1.0, 1.0, 1.0));
-        ourShader.setMat4("model", model);
-        bagpag.Draw(ourShader);
+        // Draw the bagpags
+        glStencilFunc(GL_ALWAYS, 1, 0xFF); // All fragments should pass the stencil test
+        glStencilMask(0xFF); // enable writing to the stencil buffer
+        drawModel(bagpag, ourShader, glm::vec3(0.0, 0.0, 0.0), 1.0);
+        drawModel(bagpag, ourShader, glm::vec3(3.0, 0.0, -5.0), 1.0);
 
-        // Draw a second bagpag, I'm gonna use this for depth testing since I wrote all that dang code the past 3 days
-        model = glm::mat4(1.0);
-        model = glm::translate(model, glm::vec3(0.0, 0.0, -3.0));
-        model = glm::scale(model, glm::vec3(1.0, 1.0, 1.0));
-        ourShader.setMat4("model", model);
-        bagpag.Draw(ourShader);
+        // Draw the bagpag outlines
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
+        outlineShader.use();
+        setupShader(outlineShader);
+        drawModel(bagpag, outlineShader, glm::vec3(0.0, 0.0, 0.0), 1.05);
+        drawModel(bagpag, outlineShader, glm::vec3(3.0, 0.0, -5.0), 1.05);
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glEnable(GL_DEPTH_TEST);
         
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
@@ -202,4 +210,20 @@ int main()
 
     glfwTerminate();
     return 0;
+}
+
+void drawModel(Model objModel, Shader shader, glm::vec3 position, float scale)
+{
+    glm::mat4 model = glm::mat4(1.0);
+    model = glm::translate(model, position);
+    model = glm::scale(model, glm::vec3(scale, scale, scale));
+    shader.setMat4("model", model);
+    objModel.Draw(shader);
+}
+
+void setupShader(Shader shader)
+{
+    shader.setMat4("view", camera.GetViewMatrix());
+    shader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f));
+    shader.setVec3("viewPos", camera.Position);
 }
