@@ -81,7 +81,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1200, 900, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -96,11 +96,11 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, 1200, 900);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glEnable(GL_STENCIL_TEST);
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
+    //glEnable(GL_STENCIL_TEST);
+    //glStencilFunc(GL_EQUAL, 1, 0xFF);
 
     // Capture mouse & set up mouse event callback
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -116,12 +116,22 @@ int main()
         glm::vec3(0.0f,  0.0f, -3.0f)
     };
 
-    stbi_set_flip_vertically_on_load(true);
+    float grassVertices[] = {
+        // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+        1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+    };
 
     // Set up our shaders
     Shader ourShader("./shader.vert", "./shader.frag");
     Shader lightShader("./lightsource.vert", "./lightsource.frag");
     Shader outlineShader("./shader.vert", "./shaderSingleColor.frag");
+    Shader grassShader("./grassShader.vert", "./grassShader.frag");
 
     // Define our common vars
     glm::mat4 view;
@@ -163,7 +173,50 @@ int main()
     ourShader.setFloat("spotLight.linear", 0.09f);
     ourShader.setFloat("spotLight.quadratic", 0.032f);
 
+    stbi_set_flip_vertically_on_load(true);
     Model bagpag("./backpack/backpack.obj");
+    stbi_set_flip_vertically_on_load(false);
+
+    // Set up grass rendering
+    vector<glm::vec3> vegetation;
+    vegetation.push_back(glm::vec3(-1.5f, -0.5f, -0.48f));
+    vegetation.push_back(glm::vec3( 1.5f, -0.5f,  0.51f));
+    vegetation.push_back(glm::vec3( 0.0f, -0.5f,  0.7f));
+    vegetation.push_back(glm::vec3(-0.3f, -0.5f, -2.3f));
+    vegetation.push_back(glm::vec3( 0.5f, -0.5f, -0.6f));
+
+    unsigned int grassVAO, grassVBO;
+    glGenVertexArrays(1, &grassVAO);
+    glGenBuffers(1, &grassVBO);
+    glBindVertexArray(grassVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(grassVertices), grassVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
+    
+    unsigned int grassTexture;
+    glGenTextures(1, &grassTexture);
+    glBindTexture(GL_TEXTURE_2D, grassTexture);
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load("grass.png", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture grass.png" << std::endl;
+    }
+    stbi_image_free(data);
+
+    grassShader.use();
+    grassShader.setInt("texture1", 0);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -172,36 +225,38 @@ int main()
 
         // rendering commands here
         glEnable(GL_DEPTH_TEST);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         // clear & set background:
-        glClearColor(0.1f, 0.5f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // First shader, which renders the colored cube
+        // First, draw the bagpags
         ourShader.use();
         setupShader(ourShader);
         ourShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
         ourShader.setVec3("spotLight.position", camera.Position);
         ourShader.setVec3("spotLight.direction", camera.Front);
 
-        // Draw the bagpags
         glStencilFunc(GL_ALWAYS, 1, 0xFF); // All fragments should pass the stencil test
         glStencilMask(0xFF); // enable writing to the stencil buffer
-        drawModel(bagpag, ourShader, glm::vec3(0.0, 0.0, 0.0), 1.0);
-        drawModel(bagpag, ourShader, glm::vec3(3.0, 0.0, -5.0), 1.0);
+        drawModel(bagpag, ourShader, glm::vec3(0.0, 0.0, 0.0), 0.5);
+        drawModel(bagpag, ourShader, glm::vec3(3.0, 0.0, -5.0), 0.5);
 
-        // Draw the bagpag outlines
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
-        glDisable(GL_DEPTH_TEST);
-        outlineShader.use();
-        setupShader(outlineShader);
-        drawModel(bagpag, outlineShader, glm::vec3(0.0, 0.0, 0.0), 1.05);
-        drawModel(bagpag, outlineShader, glm::vec3(3.0, 0.0, -5.0), 1.05);
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glEnable(GL_DEPTH_TEST);
+        // Then, Draw grass
+        grassShader.use();
+        grassShader.setMat4("view", camera.GetViewMatrix());
+        grassShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 1200.0f / 900.0f, 0.1f, 100.0f));
+        glBindVertexArray(grassVAO);
+        glBindTexture(GL_TEXTURE_2D, grassTexture);
+
+        for (unsigned int i = 0; i < vegetation.size(); i++)
+        {
+            glm::mat4 model = glm::mat4(1.0);
+            model = glm::translate(model, vegetation[i]);
+            grassShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
         
         // check and call events and swap the buffers
         glfwSwapBuffers(window);

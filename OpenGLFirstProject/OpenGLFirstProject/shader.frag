@@ -89,8 +89,6 @@ void main()
     result += CalcSpotLight(spotLight, norm, FragPos, viewDir); // TODO
 
     FragColor = vec4(result, 1.0);
-    //float depth = LinearizeDepth(gl_FragCoord.z) / far; // Divide by far for demonstration
-    //FragColor = vec4(vec3(depth), 1.0);
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
