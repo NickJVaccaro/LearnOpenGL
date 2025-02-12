@@ -10,6 +10,7 @@
 #include "Model.h";
 
 #include <iostream>
+#include <map>
 
 bool firstMouse = true;
 float lastX = 400, lastY = 300;
@@ -99,6 +100,8 @@ int main()
     glViewport(0, 0, 1200, 900);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     //glEnable(GL_STENCIL_TEST);
     //glStencilFunc(GL_EQUAL, 1, 0xFF);
 
@@ -116,7 +119,7 @@ int main()
         glm::vec3(0.0f,  0.0f, -3.0f)
     };
 
-    float grassVertices[] = {
+    float billboardVertices[] = {
         // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
         0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
         0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
@@ -131,7 +134,7 @@ int main()
     Shader ourShader("./shader.vert", "./shader.frag");
     Shader lightShader("./lightsource.vert", "./lightsource.frag");
     Shader outlineShader("./shader.vert", "./shaderSingleColor.frag");
-    Shader grassShader("./grassShader.vert", "./grassShader.frag");
+    Shader grassShader("./transparentShader.vert", "./transparentShader.frag");
 
     // Define our common vars
     glm::mat4 view;
@@ -178,19 +181,19 @@ int main()
     stbi_set_flip_vertically_on_load(false);
 
     // Set up grass rendering
-    vector<glm::vec3> vegetation;
-    vegetation.push_back(glm::vec3(-1.5f, -0.5f, -0.48f));
-    vegetation.push_back(glm::vec3( 1.5f, -0.5f,  0.51f));
-    vegetation.push_back(glm::vec3( 0.0f, -0.5f,  0.7f));
-    vegetation.push_back(glm::vec3(-0.3f, -0.5f, -2.3f));
-    vegetation.push_back(glm::vec3( 0.5f, -0.5f, -0.6f));
+    vector<glm::vec3> transparentObjs;
+    transparentObjs.push_back(glm::vec3(-1.5f, -0.5f, -0.48f));
+    transparentObjs.push_back(glm::vec3( 1.5f, -0.5f,  0.51f));
+    transparentObjs.push_back(glm::vec3( 0.0f, -0.5f,  0.7f));
+    transparentObjs.push_back(glm::vec3(-0.3f, -0.5f, -2.3f));
+    transparentObjs.push_back(glm::vec3( 0.5f, -0.5f, -0.6f));
 
-    unsigned int grassVAO, grassVBO;
-    glGenVertexArrays(1, &grassVAO);
-    glGenBuffers(1, &grassVBO);
-    glBindVertexArray(grassVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(grassVertices), grassVertices, GL_STATIC_DRAW);
+    unsigned int transparentVAO, transparentVBO;
+    glGenVertexArrays(1, &transparentVAO);
+    glGenBuffers(1, &transparentVBO);
+    glBindVertexArray(transparentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(billboardVertices), billboardVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
@@ -201,7 +204,7 @@ int main()
     glGenTextures(1, &grassTexture);
     glBindTexture(GL_TEXTURE_2D, grassTexture);
     int width, height, nrChannels;
-    unsigned char* data = stbi_load("grass.png", &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load("textures/blending_transparent_window.png", &width, &height, &nrChannels, 0);
     if (data)
     {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -243,17 +246,24 @@ int main()
         drawModel(bagpag, ourShader, glm::vec3(0.0, 0.0, 0.0), 0.5);
         drawModel(bagpag, ourShader, glm::vec3(3.0, 0.0, -5.0), 0.5);
 
-        // Then, Draw grass
+        // Then, Draw transparencies
+        std::map<float, glm::vec3> sorted;
+        for (unsigned int i = 0; i < transparentObjs.size(); i++)
+        {
+            float distance = glm::length(camera.Position - transparentObjs[i]);
+            sorted[distance] = transparentObjs[i];
+        }
+
         grassShader.use();
         grassShader.setMat4("view", camera.GetViewMatrix());
         grassShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 1200.0f / 900.0f, 0.1f, 100.0f));
-        glBindVertexArray(grassVAO);
+        glBindVertexArray(transparentVAO);
         glBindTexture(GL_TEXTURE_2D, grassTexture);
 
-        for (unsigned int i = 0; i < vegetation.size(); i++)
+        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
         {
             glm::mat4 model = glm::mat4(1.0);
-            model = glm::translate(model, vegetation[i]);
+            model = glm::translate(model, it->second);
             grassShader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }

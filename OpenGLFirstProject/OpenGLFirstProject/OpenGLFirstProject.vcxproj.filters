@@ -58,21 +58,15 @@
     <None Include="shaderSingleColor.frag">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="grassShader.frag">
+    <None Include="transparentShader.frag">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="grassShader.vert">
+    <None Include="transparentShader.vert">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\corgis.jpg">
-      <Filter>Source Files</Filter>
-    </Image>
-    <Image Include="container.jpg">
-      <Filter>Source Files</Filter>
-    </Image>
-    <Image Include="grass.png">
       <Filter>Source Files</Filter>
     </Image>
   </ItemGroup>

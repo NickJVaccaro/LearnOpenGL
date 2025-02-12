@@ -157,8 +157,8 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="grassShader.frag" />
-    <None Include="grassShader.vert" />
+    <None Include="transparentShader.frag" />
+    <None Include="transparentShader.vert" />
     <None Include="lightsource.frag" />
     <None Include="lightsource.vert" />
     <None Include="shader.frag" />
@@ -167,8 +167,6 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\corgis.jpg" />
-    <Image Include="container.jpg" />
-    <Image Include="grass.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
