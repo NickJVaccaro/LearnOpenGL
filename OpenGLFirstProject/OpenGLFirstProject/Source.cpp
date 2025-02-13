@@ -102,6 +102,7 @@ int main()
     glDepthFunc(GL_LESS);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     //glEnable(GL_STENCIL_TEST);
     //glStencilFunc(GL_EQUAL, 1, 0xFF);
 
@@ -119,15 +120,27 @@ int main()
         glm::vec3(0.0f,  0.0f, -3.0f)
     };
 
-    float billboardVertices[] = {
-        // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
-        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-        0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
-        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+    //float billboardVertices[] = {
+    //    // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+    //    0.0f,  0.5f,  0.0f,  0.0f,  0.0f, // 1
+    //    0.0f, -0.5f,  0.0f,  0.0f,  1.0f, // 2
+    //    1.0f, -0.5f,  0.0f,  1.0f,  1.0f, // 3
 
-        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
-        1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+    //    0.0f,  0.5f,  0.0f,  0.0f,  0.0f, // 1
+    //    1.0f, -0.5f,  0.0f,  1.0f,  1.0f, // 2
+    //    1.0f,  0.5f,  0.0f,  1.0f,  0.0f  // 3
+    //};
+
+    // Exercise 1: Reverse the order from CW to CCW for a cube (but I'm just doing the billboards)
+    float billboardVertices[] = {
+        // positions
+        0.0,  0.5, 0.0, 0.0, 0.0, // 1
+        1.0, -0.5, 0.0, 1.0, 1.0, // 3
+        0.0, -0.5, 0.0, 0.0, 1.0, // 2
+
+        0.0,  0.5, 0.0, 0.0, 0.0, // 1
+        1.0,  0.5, 0.0, 1.0, 0.0, // 3
+        1.0, -0.5, 0.0, 1.0, 1.0  // 2
     };
 
     // Set up our shaders
@@ -228,7 +241,8 @@ int main()
 
         // rendering commands here
         glEnable(GL_DEPTH_TEST);
-        //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glEnable(GL_CULL_FACE);
+        glFrontFace(GL_CCW);
 
         // clear & set background:
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -247,6 +261,7 @@ int main()
         drawModel(bagpag, ourShader, glm::vec3(3.0, 0.0, -5.0), 0.5);
 
         // Then, Draw transparencies
+        glFrontFace(GL_CW);
         std::map<float, glm::vec3> sorted;
         for (unsigned int i = 0; i < transparentObjs.size(); i++)
         {
