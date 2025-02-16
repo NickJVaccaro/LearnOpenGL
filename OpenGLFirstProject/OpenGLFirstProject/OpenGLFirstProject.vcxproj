@@ -157,6 +157,8 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="quadShader.frag" />
+    <None Include="quadShader.vert" />
     <None Include="transparentShader.frag" />
     <None Include="transparentShader.vert" />
     <None Include="lightsource.frag" />

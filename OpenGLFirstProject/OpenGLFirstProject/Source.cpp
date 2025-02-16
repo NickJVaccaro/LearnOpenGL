@@ -74,6 +74,7 @@ void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
 
 void drawModel(Model objModel, Shader shader, glm::vec3 position, float scale);
 void setupShader(Shader shader);
+void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 viewMatrix, vector<glm::vec3> transObjs, int transVAO, int transTexture);
 
 int main()
 {
@@ -102,9 +103,6 @@ int main()
     glDepthFunc(GL_LESS);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    //glEnable(GL_STENCIL_TEST);
-    //glStencilFunc(GL_EQUAL, 1, 0xFF);
 
     // Capture mouse & set up mouse event callback
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -120,17 +118,6 @@ int main()
         glm::vec3(0.0f,  0.0f, -3.0f)
     };
 
-    //float billboardVertices[] = {
-    //    // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
-    //    0.0f,  0.5f,  0.0f,  0.0f,  0.0f, // 1
-    //    0.0f, -0.5f,  0.0f,  0.0f,  1.0f, // 2
-    //    1.0f, -0.5f,  0.0f,  1.0f,  1.0f, // 3
-
-    //    0.0f,  0.5f,  0.0f,  0.0f,  0.0f, // 1
-    //    1.0f, -0.5f,  0.0f,  1.0f,  1.0f, // 2
-    //    1.0f,  0.5f,  0.0f,  1.0f,  0.0f  // 3
-    //};
-
     // Exercise 1: Reverse the order from CW to CCW for a cube (but I'm just doing the billboards)
     float billboardVertices[] = {
         // positions
@@ -143,11 +130,33 @@ int main()
         1.0, -0.5, 0.0, 1.0, 1.0  // 2
     };
 
+    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in NDC
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    float mirrorVertices[] = { // again, in NDC
+        -0.4, 0.9,  0.0, 1.0,
+        -0.4, 0.5,  0.0, 0.0,
+         0.4, 0.5,  1.0, 0.0,
+
+        -0.4, 0.9,  0.0, 1.0,
+         0.4, 0.5,  1.0, 0.0,
+         0.4, 0.9,  1.0, 1.0
+    };
+
     // Set up our shaders
     Shader ourShader("./shader.vert", "./shader.frag");
     Shader lightShader("./lightsource.vert", "./lightsource.frag");
     Shader outlineShader("./shader.vert", "./shaderSingleColor.frag");
-    Shader grassShader("./transparentShader.vert", "./transparentShader.frag");
+    Shader transShader("./transparentShader.vert", "./transparentShader.frag");
+    Shader screenShader("./quadShader.vert", "./quadShader.frag");
 
     // Define our common vars
     glm::mat4 view;
@@ -193,7 +202,7 @@ int main()
     Model bagpag("./backpack/backpack.obj");
     stbi_set_flip_vertically_on_load(false);
 
-    // Set up grass rendering
+    // Set up transparent rendering
     vector<glm::vec3> transparentObjs;
     transparentObjs.push_back(glm::vec3(-1.5f, -0.5f, -0.48f));
     transparentObjs.push_back(glm::vec3( 1.5f, -0.5f,  0.51f));
@@ -213,9 +222,9 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
     
-    unsigned int grassTexture;
-    glGenTextures(1, &grassTexture);
-    glBindTexture(GL_TEXTURE_2D, grassTexture);
+    unsigned int transparentTexture;
+    glGenTextures(1, &transparentTexture);
+    glBindTexture(GL_TEXTURE_2D, transparentTexture);
     int width, height, nrChannels;
     unsigned char* data = stbi_load("textures/blending_transparent_window.png", &width, &height, &nrChannels, 0);
     if (data)
@@ -231,58 +240,108 @@ int main()
     }
     stbi_image_free(data);
 
-    grassShader.use();
-    grassShader.setInt("texture1", 0);
+    transShader.use();
+    transShader.setInt("texture1", 0);
+
+    // Set up a framebuffer
+    unsigned int framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    // generate texture
+    unsigned int textureColorbuffer;
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1200, 900, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // attach it to currently bound framebuffer object
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
+    // create the renderbuffer object, for depth + stencil buffer
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 1200, 900);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // set up the VAO to use as drawing the quad to the screen
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
+
+    unsigned int mirrorVAO, mirrorVBO;
+    glGenVertexArrays(1, &mirrorVAO);
+    glGenBuffers(1, &mirrorVBO);
+    glBindVertexArray(mirrorVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, mirrorVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mirrorVertices), mirrorVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
+
 
     while (!glfwWindowShouldClose(window))
     {
         // input
         processInput(window);
 
-        // rendering commands here
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glFrontFace(GL_CCW);
-
-        // clear & set background:
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        // first pass - bind to our custom framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glClearColor(0.1, 0.1, 0.1, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // First, draw the bagpags
-        ourShader.use();
+        glEnable(GL_DEPTH_TEST);
+        // then draw the scene, which will draw into our custom framebuffer
         setupShader(ourShader);
-        ourShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
-        ourShader.setVec3("spotLight.position", camera.Position);
-        ourShader.setVec3("spotLight.direction", camera.Front);
+        drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix(), transparentObjs, transparentVAO, transparentTexture);
 
-        glStencilFunc(GL_ALWAYS, 1, 0xFF); // All fragments should pass the stencil test
-        glStencilMask(0xFF); // enable writing to the stencil buffer
-        drawModel(bagpag, ourShader, glm::vec3(0.0, 0.0, 0.0), 0.5);
-        drawModel(bagpag, ourShader, glm::vec3(3.0, 0.0, -5.0), 0.5);
+        // second pass - swap back to the default framebuffer, then draw the quad over top of the whole screen
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-        // Then, Draw transparencies
-        glFrontFace(GL_CW);
-        std::map<float, glm::vec3> sorted;
-        for (unsigned int i = 0; i < transparentObjs.size(); i++)
-        {
-            float distance = glm::length(camera.Position - transparentObjs[i]);
-            sorted[distance] = transparentObjs[i];
-        }
+        screenShader.use();
+        glBindVertexArray(quadVAO);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer); // this is what we wrote to in our custom framebuffer
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        grassShader.use();
-        grassShader.setMat4("view", camera.GetViewMatrix());
-        grassShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 1200.0f / 900.0f, 0.1f, 100.0f));
-        glBindVertexArray(transparentVAO);
-        glBindTexture(GL_TEXTURE_2D, grassTexture);
+        // third pass - back to the custom buffer, this time draw behind us
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glClearColor(0.1, 0.1, 0.1, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix_Behind(), transparentObjs, transparentVAO, transparentTexture);
 
-        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
-        {
-            glm::mat4 model = glm::mat4(1.0);
-            model = glm::translate(model, it->second);
-            grassShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-        
+        // fourth pass - draw the behind-us view as a rear-view mirror type dealie
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        //glClearColor(1.0, 1.0, 1.0, 1.0);
+        //glClear(GL_COLOR_BUFFER_BIT);
+
+        screenShader.use();
+        glBindVertexArray(mirrorVAO);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -304,6 +363,46 @@ void drawModel(Model objModel, Shader shader, glm::vec3 position, float scale)
 void setupShader(Shader shader)
 {
     shader.setMat4("view", camera.GetViewMatrix());
-    shader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 800.0f / 600.0f, 0.1f, 100.0f));
+    shader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 1200.0f / 900.0f, 0.1f, 100.0f));
     shader.setVec3("viewPos", camera.Position);
+}
+
+void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 viewMatrix, vector<glm::vec3> transObjs, int transVAO, int transTexture)
+{
+    // First, draw the bagpags
+    mainShader.use();
+    mainShader.setMat4("view", viewMatrix);
+    mainShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 1200.0f / 900.0f, 0.1f, 100.0f));
+    mainShader.setVec3("viewPos", camera.Position);
+    mainShader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
+    mainShader.setVec3("spotLight.position", camera.Position);
+    mainShader.setVec3("spotLight.direction", camera.Front);
+
+    glStencilFunc(GL_ALWAYS, 1, 0xFF); // All fragments should pass the stencil test
+    glStencilMask(0xFF); // enable writing to the stencil buffer
+    drawModel(bagpag, mainShader, glm::vec3(0.0, 0.0, 0.0), 0.5);
+    drawModel(bagpag, mainShader, glm::vec3(3.0, 0.0, -5.0), 0.5);
+
+    // Then, draw transparencies
+    glFrontFace(GL_CW);
+    std::map<float, glm::vec3> sorted;
+    for (unsigned int i = 0; i < transObjs.size(); i++)
+    {
+        float distance = glm::length(camera.Position - transObjs[i]);
+        sorted[distance] = transObjs[i];
+    }
+
+    transShader.use();
+    transShader.setMat4("view", viewMatrix);
+    transShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 1200.0f / 900.0f, 0.1f, 100.0f));
+    glBindVertexArray(transVAO);
+    glBindTexture(GL_TEXTURE_2D, transTexture);
+
+    for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+    {
+        glm::mat4 model = glm::mat4(1.0);
+        model = glm::translate(model, it->second);
+        transShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 }

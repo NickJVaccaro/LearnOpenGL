@@ -62,8 +62,12 @@ public:
 
     glm::mat4 GetViewMatrix()
     {
-        //return glm::lookAt(Position, Position + Front, Up);
         return customLookAt(Position, Position + Front, Up);
+    }
+
+    glm::mat4 GetViewMatrix_Behind()
+    {
+        return customLookAt(Position, Position - Front, Up);
     }
 
     // Process input received from any keyboard-like input system

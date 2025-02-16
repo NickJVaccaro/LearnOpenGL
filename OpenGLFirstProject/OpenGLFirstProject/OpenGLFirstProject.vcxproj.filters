@@ -64,6 +64,12 @@
     <None Include="transparentShader.vert">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="quadShader.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="quadShader.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\corgis.jpg">
