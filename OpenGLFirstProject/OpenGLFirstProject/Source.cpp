@@ -75,6 +75,8 @@ void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
 void drawModel(Model objModel, Shader shader, glm::vec3 position, float scale);
 void setupShader(Shader shader);
 void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 viewMatrix, vector<glm::vec3> transObjs, int transVAO, int transTexture);
+unsigned int loadCubemap(vector<std::string> faces);
+void drawSkybox(Shader shader, int vao, int texture, glm::mat4 view);
 
 int main()
 {
@@ -100,7 +102,7 @@ int main()
 
     glViewport(0, 0, 1200, 900);
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -151,12 +153,58 @@ int main()
          0.4, 0.9,  1.0, 1.0
     };
 
+    float skyboxVertices[] = {
+        // positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+
     // Set up our shaders
     Shader ourShader("./shader.vert", "./shader.frag");
     Shader lightShader("./lightsource.vert", "./lightsource.frag");
     Shader outlineShader("./shader.vert", "./shaderSingleColor.frag");
     Shader transShader("./transparentShader.vert", "./transparentShader.frag");
     Shader screenShader("./quadShader.vert", "./quadShader.frag");
+    Shader skyboxShader("./skybox.vert", "./skybox.frag");
 
     // Define our common vars
     glm::mat4 view;
@@ -298,6 +346,27 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glBindVertexArray(0);
 
+    // Set up the cubemap/skybox
+    vector<std::string> faces
+    {
+        "textures/skybox/right.jpg",
+        "textures/skybox/left.jpg",
+        "textures/skybox/top.jpg",
+        "textures/skybox/bottom.jpg",
+        "textures/skybox/front.jpg",
+        "textures/skybox/back.jpg"
+    };
+    unsigned int cubemapTexture = loadCubemap(faces);
+
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
 
     while (!glfwWindowShouldClose(window))
     {
@@ -309,6 +378,10 @@ int main()
         glClearColor(0.1, 0.1, 0.1, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
+
+        // draw the skybox FIRST
+        drawSkybox(skyboxShader, skyboxVAO, cubemapTexture, glm::mat4(glm::mat3(camera.GetViewMatrix())));
+
         // then draw the scene, which will draw into our custom framebuffer
         setupShader(ourShader);
         drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix(), transparentObjs, transparentVAO, transparentTexture);
@@ -316,7 +389,6 @@ int main()
         // second pass - swap back to the default framebuffer, then draw the quad over top of the whole screen
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDisable(GL_DEPTH_TEST);
-        glClearColor(1.0, 1.0, 1.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         screenShader.use();
@@ -326,16 +398,14 @@ int main()
 
         // third pass - back to the custom buffer, this time draw behind us
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        glClearColor(0.1, 0.1, 0.1, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        drawSkybox(skyboxShader, skyboxVAO, cubemapTexture, glm::mat4(glm::mat3(camera.GetViewMatrix_Behind())));
         glEnable(GL_DEPTH_TEST);
         drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix_Behind(), transparentObjs, transparentVAO, transparentTexture);
 
         // fourth pass - draw the behind-us view as a rear-view mirror type dealie
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST);
-        //glClearColor(1.0, 1.0, 1.0, 1.0);
-        //glClear(GL_COLOR_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);        
 
         screenShader.use();
         glBindVertexArray(mirrorVAO);
@@ -349,6 +419,18 @@ int main()
 
     glfwTerminate();
     return 0;
+}
+
+void drawSkybox(Shader shader, int vao, int texture, glm::mat4 view)
+{
+    glDepthMask(GL_FALSE);
+    shader.use();
+    setupShader(shader);
+    shader.setMat4("view", view);
+    glBindVertexArray(vao);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDepthMask(GL_TRUE);
 }
 
 void drawModel(Model objModel, Shader shader, glm::vec3 position, float scale)
@@ -405,4 +487,34 @@ void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 vi
         transShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
+}
+
+unsigned int loadCubemap(vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++) 
+    {
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        }
+        else 
+        {
+            std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+        }
+        stbi_image_free(data);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }

@@ -159,6 +159,8 @@
   <ItemGroup>
     <None Include="quadShader.frag" />
     <None Include="quadShader.vert" />
+    <None Include="skybox.frag" />
+    <None Include="skybox.vert" />
     <None Include="transparentShader.frag" />
     <None Include="transparentShader.vert" />
     <None Include="lightsource.frag" />
