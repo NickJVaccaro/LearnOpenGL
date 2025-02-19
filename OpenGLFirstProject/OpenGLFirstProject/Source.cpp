@@ -74,7 +74,7 @@ void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
 
 void drawModel(Model objModel, Shader shader, glm::vec3 position, float scale);
 void setupShader(Shader shader);
-void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 viewMatrix, vector<glm::vec3> transObjs, int transVAO, int transTexture);
+void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 viewMatrix, vector<glm::vec3> transObjs, int transVAO, int transTexture, int skyboxVAO, int skyboxTexture);
 unsigned int loadCubemap(vector<std::string> faces);
 void drawSkybox(Shader shader, int vao, int texture, glm::mat4 view);
 
@@ -384,7 +384,7 @@ int main()
 
         // then draw the scene, which will draw into our custom framebuffer
         setupShader(ourShader);
-        drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix(), transparentObjs, transparentVAO, transparentTexture);
+        drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix(), transparentObjs, transparentVAO, transparentTexture, skyboxVAO, cubemapTexture);
 
         // second pass - swap back to the default framebuffer, then draw the quad over top of the whole screen
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -397,20 +397,20 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // third pass - back to the custom buffer, this time draw behind us
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawSkybox(skyboxShader, skyboxVAO, cubemapTexture, glm::mat4(glm::mat3(camera.GetViewMatrix_Behind())));
-        glEnable(GL_DEPTH_TEST);
-        drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix_Behind(), transparentObjs, transparentVAO, transparentTexture);
+        //glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //drawSkybox(skyboxShader, skyboxVAO, cubemapTexture, glm::mat4(glm::mat3(camera.GetViewMatrix_Behind())));
+        //glEnable(GL_DEPTH_TEST);
+        //drawScene(ourShader, transShader, bagpag, camera.GetViewMatrix_Behind(), transparentObjs, transparentVAO, transparentTexture, skyboxVAO, cubemapTexture);
 
-        // fourth pass - draw the behind-us view as a rear-view mirror type dealie
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST);        
+        //// fourth pass - draw the behind-us view as a rear-view mirror type dealie
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //glDisable(GL_DEPTH_TEST);        
 
-        screenShader.use();
-        glBindVertexArray(mirrorVAO);
-        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        //screenShader.use();
+        //glBindVertexArray(mirrorVAO);
+        //glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
@@ -449,7 +449,7 @@ void setupShader(Shader shader)
     shader.setVec3("viewPos", camera.Position);
 }
 
-void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 viewMatrix, vector<glm::vec3> transObjs, int transVAO, int transTexture)
+void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 viewMatrix, vector<glm::vec3> transObjs, int transVAO, int transTexture, int skyboxVAO, int skyboxTexture)
 {
     // First, draw the bagpags
     mainShader.use();
@@ -462,6 +462,10 @@ void drawScene(Shader mainShader, Shader transShader, Model bagpag, glm::mat4 vi
 
     glStencilFunc(GL_ALWAYS, 1, 0xFF); // All fragments should pass the stencil test
     glStencilMask(0xFF); // enable writing to the stencil buffer
+    glBindVertexArray(skyboxVAO);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+    //glDrawArrays(GL_TRIANGLES, 0, 36);
+
     drawModel(bagpag, mainShader, glm::vec3(0.0, 0.0, 0.0), 0.5);
     drawModel(bagpag, mainShader, glm::vec3(3.0, 0.0, -5.0), 0.5);
 

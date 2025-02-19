@@ -34,17 +34,17 @@ void main()
 
     // Post-proc 3, sharpen:
     //float kernel[9] = float[](
-    //    -1, -1, -1,
-    //    -1,  9, -1,
-    //    -1, -1, -1
+    //     0, -1,  0,
+    //    -1,  5, -1,
+    //     0, -1,  0
     //);
 
     // Post-proc 4, blur:
-    float kernel[9] = float[](
-        1.0 / 16, 2.0 / 16, 1.0 / 16,
-        2.0 / 16, 4.0 / 16, 2.0 / 16,
-        1.0 / 16, 2.0 / 16, 1.0 / 16
-    );
+    //float kernel[9] = float[](
+    //    1.0 / 16, 2.0 / 16, 1.0 / 16,
+    //    2.0 / 16, 4.0 / 16, 2.0 / 16,
+    //    1.0 / 16, 2.0 / 16, 1.0 / 16
+    //);
 
     // Post-proc 5, edge detect:
     //float kernel[9] = float[](
@@ -52,6 +52,13 @@ void main()
     //    1, -8,  1,
     //    1,  1,  1
     //);
+
+    // Post-proc 6, identity:
+    float kernel[9] = float[](
+        0, 0, 0,
+        0, 1, 0,
+        0, 0, 0
+    );
 
     vec3 sampleTex[9];
     for(int i = 0; i < 9; i++)

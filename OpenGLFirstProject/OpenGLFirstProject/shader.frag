@@ -61,6 +61,7 @@ out vec4 FragColor;
 
 uniform mat4 view;
 uniform vec3 viewPos;
+uniform samplerCube skybox;
 
 float near = 0.1;
 float far = 5.0;
@@ -89,6 +90,16 @@ void main()
     result += CalcSpotLight(spotLight, norm, FragPos, viewDir); // TODO
 
     FragColor = vec4(result, 1.0);
+
+    // Reflect the skybox:
+    vec3 I = normalize(FragPos - viewPos);
+    vec3 R = reflect(I, norm);
+    FragColor = vec4(texture(skybox, R).rgb, 1.0);
+
+    // ReFRACT the skybox!:
+    float ratio = 1.00 / 1.52; // Air / Glass
+    R = refract(I, norm, ratio);
+    FragColor = vec4(texture(skybox, R).rgb, 1.0);
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
