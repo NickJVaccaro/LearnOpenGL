@@ -157,8 +157,16 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="identityShader.geom" />
+    <None Include="normalShader.frag" />
+    <None Include="normalShader.geom" />
+    <None Include="normalShader.vert" />
+    <None Include="points.frag" />
+    <None Include="points.geom" />
+    <None Include="points.vert" />
     <None Include="quadShader.frag" />
     <None Include="quadShader.vert" />
+    <None Include="explodeShader.geom" />
     <None Include="skybox.frag" />
     <None Include="skybox.vert" />
     <None Include="transparentShader.frag" />

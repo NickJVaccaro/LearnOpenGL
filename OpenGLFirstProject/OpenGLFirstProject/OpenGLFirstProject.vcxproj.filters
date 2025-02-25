@@ -76,6 +76,30 @@
     <None Include="skybox.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="points.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="points.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="points.geom">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="explodeShader.geom">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="identityShader.geom">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="normalShader.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="normalShader.geom">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="normalShader.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\corgis.jpg">

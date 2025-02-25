@@ -92,14 +92,14 @@ void main()
     FragColor = vec4(result, 1.0);
 
     // Reflect the skybox:
-    vec3 I = normalize(FragPos - viewPos);
-    vec3 R = reflect(I, norm);
-    FragColor = vec4(texture(skybox, R).rgb, 1.0);
+    //vec3 I = normalize(FragPos - viewPos);
+    //vec3 R = reflect(I, norm);
+    //FragColor = vec4(texture(skybox, R).rgb, 1.0);
 
     // ReFRACT the skybox!:
-    float ratio = 1.00 / 1.52; // Air / Glass
-    R = refract(I, norm, ratio);
-    FragColor = vec4(texture(skybox, R).rgb, 1.0);
+    //float ratio = 1.00 / 1.52; // Air / Glass
+    //R = refract(I, norm, ratio);
+    //FragColor = vec4(texture(skybox, R).rgb, 1.0);
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
