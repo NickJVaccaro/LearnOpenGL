@@ -158,6 +158,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="identityShader.geom" />
+    <None Include="instanced.frag" />
+    <None Include="instanced.vert" />
     <None Include="normalShader.frag" />
     <None Include="normalShader.geom" />
     <None Include="normalShader.vert" />

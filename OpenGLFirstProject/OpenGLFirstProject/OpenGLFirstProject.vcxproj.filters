@@ -100,6 +100,12 @@
     <None Include="normalShader.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="instanced.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="instanced.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\corgis.jpg">

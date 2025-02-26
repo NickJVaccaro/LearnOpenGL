@@ -19,6 +19,7 @@ using namespace std;
 class Model
 {
 public:
+    vector<Mesh> meshes;
     Model(string path)
     {
         loadModel(path);
@@ -34,7 +35,6 @@ public:
 
 private:
     // Model data
-    vector<Mesh> meshes;
     string directory;
     vector<Texture> textures_loaded;
 
