@@ -84,6 +84,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     GLFWwindow* window = glfwCreateWindow(1200, 900, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
@@ -102,6 +103,7 @@ int main()
 
     glViewport(0, 0, 1200, 900);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
 
     // Capture mouse & set up mouse event callback
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -110,90 +112,75 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    float quadVertices[] = {
-        // positions     // colors
-        -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-         0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-        -0.05f, -0.05f,  0.0f, 0.0f, 1.0f,
+    float cubeVertices[] = {
+        // positions       
+        -0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f, -0.5f,
+         0.5f,  0.5f, -0.5f,
+         0.5f,  0.5f, -0.5f,
+        -0.5f,  0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
 
-        -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-         0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-         0.05f,  0.05f,  0.0f, 1.0f, 1.0f
+        -0.5f, -0.5f,  0.5f,
+         0.5f, -0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f,  0.5f,
+        -0.5f, -0.5f,  0.5f,
+
+        -0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f,  0.5f,
+        -0.5f,  0.5f,  0.5f,
+
+         0.5f,  0.5f,  0.5f,
+         0.5f,  0.5f, -0.5f,
+         0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f,
+
+        -0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f,  0.5f,
+         0.5f, -0.5f,  0.5f,
+        -0.5f, -0.5f,  0.5f,
+        -0.5f, -0.5f, -0.5f,
+
+        -0.5f,  0.5f, -0.5f,
+         0.5f,  0.5f, -0.5f,
+         0.5f,  0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f, -0.5f
     };
 
     // Set up our shaders
-    //Shader ourShader("./shader.vert", "./shader.frag");
+    Shader shader("./shader.vert", "./shader.frag");
     //Shader normalShader("./normalShader.vert", "./normalShader.frag", "./normalShader.geom");
     //Shader pointsShader("./points.vert", "./points.frag", "./points.geom");
-    Shader instancedShader("./instanced.vert", "./instanced.frag");
+    //Shader instancedShader("./instanced.vert", "./instanced.frag");
 
     // Define our common vars
     glm::mat4 view;
     glm::mat4 projection;
 
     stbi_set_flip_vertically_on_load(true);
-    Model planet("./planet/planet.obj");
-    Model rock("./rock/rock.obj");
+    //Model planet("./planet/planet.obj");
+    //Model rock("./rock/rock.obj");
     stbi_set_flip_vertically_on_load(false);
 
-    unsigned int amount = 50000;
-    glm::mat4* modelMatrices;
-    modelMatrices = new glm::mat4[amount];
-    srand(glfwGetTime());
-    float radius = 100;
-    float offset = 25;
-    for (unsigned int i = 0; i < amount; i++)
-    {
-        glm::mat4 model = glm::mat4(1.0f);
-        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
-        float angle = (float)i / (float)amount * 360;
-        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0 - offset;
-        float x = sin(angle) * radius + displacement;
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0 - offset;
-        float y = displacement * 0.4f;
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0 - offset;
-        float z = cos(angle) * radius + displacement;
-        model = glm::translate(model, glm::vec3(x, y, z));
-
-        // 2. scale: scale between 0.05 and 0.25
-        float scale = (rand() % 20) / 100.0 + 0.05;
-        model = glm::scale(model, glm::vec3(scale));
-
-        // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
-        float rotAngle = (rand() % 360);
-        model = glm::rotate(model, rotAngle, glm::vec3(0.4, 0.6, 0.8));
-
-        // 4. now add to list of matrices
-        modelMatrices[i] = model;
-    }
-
-    unsigned int buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
-
-    for (unsigned int i = 0; i < rock.meshes.size(); i++)
-    {
-        unsigned int vao = rock.meshes[i].VAO;
-        glBindVertexArray(vao);
-
-        std::size_t vec4Size = sizeof(glm::vec4);
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
-
-        glVertexAttribDivisor(3, 1);
-        glVertexAttribDivisor(4, 1);
-        glVertexAttribDivisor(5, 1);
-        glVertexAttribDivisor(6, 1);
-
-        glBindVertexArray(0);
-    }
+    // Cube setup:
+    unsigned int vao, vbo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
     // RENDER LOOP:
     while (!glfwWindowShouldClose(window))
@@ -204,14 +191,11 @@ int main()
         glClearColor(0.1, 0.1, 0.1, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        instancedShader.use();
-        setupShader(instancedShader);
-
-        for (unsigned int i = 0; i < rock.meshes.size(); i++)
-        {
-            glBindVertexArray(rock.meshes[i].VAO);
-            glDrawElementsInstanced(GL_TRIANGLES, rock.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount);
-        }
+        shader.use();
+        setupShader(shader);
+        shader.setMat4("model", glm::mat4(1.0));
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
