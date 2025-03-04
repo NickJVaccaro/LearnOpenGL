@@ -22,6 +22,9 @@ float fov = 45.0f;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+bool blinn = false;
+bool blinnKeyPressed = false;
+
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
 
 glm::vec3 lightPos(1.2f, 2.0f, 2.0f);
@@ -48,6 +51,16 @@ void processInput(GLFWwindow* window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !blinnKeyPressed)
+    {
+        blinn = !blinn;
+        blinnKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE)
+    {
+        blinnKeyPressed = false;
+    }
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -103,7 +116,6 @@ int main()
 
     glViewport(0, 0, 1200, 900);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_MULTISAMPLE);
 
     // Capture mouse & set up mouse event callback
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -112,75 +124,33 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    float cubeVertices[] = {
-        // positions       
-        -0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-
-        -0.5f, -0.5f,  0.5f,
-         0.5f, -0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-        -0.5f, -0.5f,  0.5f,
-
-        -0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-
-         0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-
-        -0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f, -0.5f,
-         0.5f, -0.5f,  0.5f,
-         0.5f, -0.5f,  0.5f,
-        -0.5f, -0.5f,  0.5f,
-        -0.5f, -0.5f, -0.5f,
-
-        -0.5f,  0.5f, -0.5f,
-         0.5f,  0.5f, -0.5f,
-         0.5f,  0.5f,  0.5f,
-         0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f, -0.5f
-    };
-
     // Set up our shaders
     Shader shader("./shader.vert", "./shader.frag");
-    //Shader normalShader("./normalShader.vert", "./normalShader.frag", "./normalShader.geom");
-    //Shader pointsShader("./points.vert", "./points.frag", "./points.geom");
-    //Shader instancedShader("./instanced.vert", "./instanced.frag");
 
     // Define our common vars
     glm::mat4 view;
     glm::mat4 projection;
 
     stbi_set_flip_vertically_on_load(true);
-    //Model planet("./planet/planet.obj");
-    //Model rock("./rock/rock.obj");
+    Model bagpag("./backpack/backpack.obj");
     stbi_set_flip_vertically_on_load(false);
 
-    // Cube setup:
-    unsigned int vao, vbo;
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    shader.use();
+    shader.setVec3("dirLight.direction", -0.2, -1.0, -0.2);
+    shader.setVec3("dirLight.ambient", 0.05, 0.05, 0.05);
+    shader.setVec3("dirLight.diffuse", 0.4, 0.4, 0.4);
+    shader.setVec3("dirLight.specular", 1.0, 1.0, 1.0);
+    shader.setFloat("material.shininess", 64);
+
+    shader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
+    shader.setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f);
+    shader.setVec3("spotLight.specular", 1.0, 1.0, 1.0);
+
+    shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5)));
+    shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5)));
+    shader.setFloat("spotLight.constant", 1.0f);
+    shader.setFloat("spotLight.linear", 0.09f);
+    shader.setFloat("spotLight.quadratic", 0.032f);
 
     // RENDER LOOP:
     while (!glfwWindowShouldClose(window))
@@ -193,9 +163,14 @@ int main()
 
         shader.use();
         setupShader(shader);
+        shader.setVec3("lightColor", glm::vec3(1.0, 1.0, 1.0));
+        shader.setVec3("spotLight.position", camera.Position);
+        shader.setVec3("spotLight.direction", camera.Front);
+
+        shader.setBool("blinn", blinn);
         shader.setMat4("model", glm::mat4(1.0));
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        drawModel(bagpag, shader, glm::vec3(0, -3, -5), 1);
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
