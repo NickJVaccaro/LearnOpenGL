@@ -157,30 +157,15 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="identityShader.geom" />
-    <None Include="instanced.frag" />
-    <None Include="instanced.vert" />
-    <None Include="normalShader.frag" />
-    <None Include="normalShader.geom" />
-    <None Include="normalShader.vert" />
-    <None Include="points.frag" />
-    <None Include="points.geom" />
-    <None Include="points.vert" />
-    <None Include="quadShader.frag" />
-    <None Include="quadShader.vert" />
-    <None Include="explodeShader.geom" />
-    <None Include="skybox.frag" />
-    <None Include="skybox.vert" />
-    <None Include="transparentShader.frag" />
-    <None Include="transparentShader.vert" />
-    <None Include="lightsource.frag" />
-    <None Include="lightsource.vert" />
-    <None Include="shader.frag" />
-    <None Include="shader.vert" />
-    <None Include="shaderSingleColor.frag" />
+    <Image Include="..\..\..\..\corgis.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\corgis.jpg" />
+    <None Include="screenShader.frag" />
+    <None Include="screenShader.vert" />
+    <None Include="shadowShader.frag" />
+    <None Include="shadowShader.vert" />
+    <None Include="simpleDepthShader.frag" />
+    <None Include="simpleDepthShader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
