@@ -66,5 +66,14 @@
     <None Include="shadowShader.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="pointShadowShader.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="pointShadowShader.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="pointShadowShader.geom">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
