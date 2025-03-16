@@ -147,7 +147,9 @@ int main()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glBindVertexArray(0);
 
-    unsigned int texture = loadTexture("./textures/container2.png");
+    //unsigned int texture = loadTexture("./textures/container2.png");
+    unsigned int texture = loadTexture("./textures/brickwall.jpg");
+    unsigned int normalMap = loadTexture("./textures/brickwall_normal.jpg");
 
     // Depth Map (shadow map) FBO
     const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
@@ -174,8 +176,9 @@ int main()
     shader.use();
     shader.setInt("diffuseTexture", 0);
     shader.setInt("shadowMap", 1);
+    shader.setInt("normalMap", 2);
 
-    glm::vec3 lightPos = glm::vec3(0.0);
+    glm::vec3 lightPos = glm::vec3(0.0, -4.0, 3.0);
 
     // RENDER LOOP:
     while (!glfwWindowShouldClose(window))
@@ -229,6 +232,8 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, normalMap);
         renderScene(shader);
 
         // check and call events and swap the buffers
