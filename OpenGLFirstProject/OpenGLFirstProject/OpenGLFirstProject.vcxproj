@@ -165,6 +165,8 @@
     <None Include="pointShadowShader.vert" />
     <None Include="screenShader.frag" />
     <None Include="screenShader.vert" />
+    <None Include="shader.frag" />
+    <None Include="shader.vert" />
     <None Include="shadowShader.frag" />
     <None Include="shadowShader.vert" />
     <None Include="simpleDepthShader.frag" />
