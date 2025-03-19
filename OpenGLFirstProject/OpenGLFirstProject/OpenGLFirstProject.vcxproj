@@ -160,6 +160,8 @@
     <Image Include="..\..\..\..\corgis.jpg" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="hdr.frag" />
+    <None Include="hdr.vert" />
     <None Include="pointShadowShader.frag" />
     <None Include="pointShadowShader.geom" />
     <None Include="pointShadowShader.vert" />

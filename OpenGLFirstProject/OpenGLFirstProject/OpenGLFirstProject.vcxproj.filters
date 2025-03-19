@@ -81,5 +81,11 @@
     <None Include="shader.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="hdr.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="hdr.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
