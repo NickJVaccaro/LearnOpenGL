@@ -87,5 +87,14 @@
     <None Include="hdr.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="bloom.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="bloom.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="lightShader.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
