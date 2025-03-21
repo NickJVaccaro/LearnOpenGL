@@ -43,57 +43,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\corgis.jpg">
-      <Filter>Source Files</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="simpleDepthShader.vert">
+    <None Include="gBuffer.vert">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="simpleDepthShader.frag">
+    <None Include="gBuffer.frag">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="screenShader.vert">
+    <None Include="deferredLighting.vert">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="screenShader.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="shadowShader.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="shadowShader.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="pointShadowShader.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="pointShadowShader.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="pointShadowShader.geom">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="shader.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="shader.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="hdr.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="hdr.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="bloom.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="bloom.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="lightShader.frag">
+    <None Include="deferredLighting.frag">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

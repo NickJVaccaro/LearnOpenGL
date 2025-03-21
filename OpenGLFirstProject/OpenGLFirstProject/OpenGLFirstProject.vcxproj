@@ -157,25 +157,10 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\corgis.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="bloom.frag" />
-    <None Include="bloom.vert" />
-    <None Include="hdr.frag" />
-    <None Include="hdr.vert" />
-    <None Include="lightShader.frag" />
-    <None Include="pointShadowShader.frag" />
-    <None Include="pointShadowShader.geom" />
-    <None Include="pointShadowShader.vert" />
-    <None Include="screenShader.frag" />
-    <None Include="screenShader.vert" />
-    <None Include="shader.frag" />
-    <None Include="shader.vert" />
-    <None Include="shadowShader.frag" />
-    <None Include="shadowShader.vert" />
-    <None Include="simpleDepthShader.frag" />
-    <None Include="simpleDepthShader.vert" />
+    <None Include="deferredLighting.frag" />
+    <None Include="deferredLighting.vert" />
+    <None Include="gBuffer.frag" />
+    <None Include="gBuffer.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
