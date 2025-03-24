@@ -161,6 +161,9 @@
     <None Include="deferredLighting.vert" />
     <None Include="gBuffer.frag" />
     <None Include="gBuffer.vert" />
+    <None Include="ssao.frag" />
+    <None Include="ssao.vert" />
+    <None Include="ssaoBlur.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

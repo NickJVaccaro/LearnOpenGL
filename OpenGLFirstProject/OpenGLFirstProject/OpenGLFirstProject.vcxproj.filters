@@ -55,5 +55,14 @@
     <None Include="deferredLighting.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="ssao.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="ssao.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="ssaoBlur.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
