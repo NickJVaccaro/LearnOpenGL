@@ -43,25 +43,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="gBuffer.vert">
+    <None Include="pbr.vert">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="gBuffer.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="deferredLighting.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="deferredLighting.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="ssao.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="ssao.frag">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="ssaoBlur.frag">
+    <None Include="pbr.frag">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

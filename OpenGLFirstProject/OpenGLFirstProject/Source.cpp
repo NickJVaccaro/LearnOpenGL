@@ -16,6 +16,7 @@
 void renderScene(const Shader& shader);
 void renderCube();
 void renderQuad();
+void renderSphere();
 unsigned int loadTexture(const char* path);
 
 bool firstMouse = true;
@@ -112,174 +113,40 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    stbi_set_flip_vertically_on_load(true);
     glEnable(GL_DEPTH_TEST);
 
     // Set up our shaders
-    Shader gPassShader("gBuffer.vert", "gBuffer.frag");
-    Shader lPassShader("deferredLighting.vert", "deferredLighting.frag");
-    Shader ssaoShader("ssao.vert", "ssao.frag");
-    Shader ssaoBlurShader("ssao.vert", "ssaoBlur.frag");
-
-    Model backpack("./backpack/backpack.obj");
-    std::vector<glm::vec3> objectPositions;
-    objectPositions.push_back(glm::vec3(-3.0, -0.5, -3.0));
-    objectPositions.push_back(glm::vec3(0.0, -0.5, -3.0));
-    objectPositions.push_back(glm::vec3(3.0, -0.5, -3.0));
-    objectPositions.push_back(glm::vec3(-3.0, -0.5, 0.0));
-    objectPositions.push_back(glm::vec3(0.0, -0.5, 0.0));
-    objectPositions.push_back(glm::vec3(3.0, -0.5, 0.0));
-    objectPositions.push_back(glm::vec3(-3.0, -0.5, 3.0));
-    objectPositions.push_back(glm::vec3(0.0, -0.5, 3.0));
-    objectPositions.push_back(glm::vec3(3.0, -0.5, 3.0));
-
-    // Configure G-Buffer framebuffer
-    unsigned int gBuffer;
-    glGenFramebuffers(1, &gBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-
-    unsigned int gPosition, gNormal, gAlbedo;
-
-    // Position buffer
-    glGenTextures(1, &gPosition);
-    glBindTexture(GL_TEXTURE_2D, gPosition);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-
-    // Normal buffer
-    glGenTextures(1, &gNormal);
-    glBindTexture(GL_TEXTURE_2D, gNormal);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-
-    // Color + specular buffer
-    glGenTextures(1, &gAlbedo);
-    glBindTexture(GL_TEXTURE_2D, gAlbedo);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gAlbedo, 0);
-
-    // Tell OpenGL which attachments to use
-    unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-    glDrawBuffers(3, attachments);
-
-    // Depth buffer
-    unsigned int rboDepth;
-    glGenRenderbuffers(1, &rboDepth);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "Framebuffer not complete!" << std::endl;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    Shader shader("pbr.vert", "pbr.frag");
+    shader.use();
+    shader.setVec3("albedo", 0.5f, 0.5, 0.0);
+    shader.setFloat("ao", 0.0);
 
     // Lights
-    //const unsigned int numLights = 32;
-    const unsigned int numLights = 1;
-    std::vector<glm::vec3> lightPositions;
-    std::vector<glm::vec3> lightColors;
-    lightPositions.push_back(glm::vec3(2.0, 4.0, -2.0));
-    lightColors.push_back(glm::vec3(0.2, 0.2, 0.7));
-    //srand(13);
-    //for (unsigned int i = 0; i < numLights; i++)
-    //{
-    //    // Randomize position:
-    //    float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-    //    float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
-    //    float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-    //    lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
+    glm::vec3 lightPositions[] = {
+        glm::vec3(-10.0,  10.0, 10.0),
+        glm::vec3( 10.0,  10.0, 10.0),
+        glm::vec3(-10.0, -10.0, 10.0),
+        glm::vec3( 10.0, -10.0, 10.0)
+    };
+    glm::vec3 lightColors[] = {
+        glm::vec3(300, 300, 300),
+        glm::vec3(300, 300, 300),
+        glm::vec3(300, 300, 300),
+        glm::vec3(0, 300, 300)
+    };
 
-    //    // Randomize color:
-    //    float r = static_cast<float>(((rand() % 100) / 200.0f) + 0.5);
-    //    float g = static_cast<float>(((rand() % 100) / 200.0f) + 0.5);
-    //    float b = static_cast<float>(((rand() % 100) / 200.0f) + 0.5);
-    //    lightColors.push_back(glm::vec3(r, g, b));
-    //}
+    int numRows = 5;
+    int numColumns = 5;
+    float spacing = 2.5;
 
-    // SSAO kernel
-    std::uniform_real_distribution<float> randomFloats(0.0, 1.0);
-    std::default_random_engine generator;
-    std::vector<glm::vec3> ssaoKernel;
-    for (unsigned int i = 0; i < 64; i++)
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    shader.setMat4("projection", projection);
+
+    for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
     {
-        glm::vec3 sample(
-            randomFloats(generator) * 2.0 - 1.0,
-            randomFloats(generator) * 2.0 - 1.0,
-            randomFloats(generator)
-        );
-        sample = glm::normalize(sample);
-        sample *= randomFloats(generator);
-        float scale = (float)i / 64.0;
-        scale = lerp(0.1f, 1.0f, scale * scale);
-        sample *= scale;
-        ssaoKernel.push_back(sample);
+        shader.setVec3("lightPositions[" + std::to_string(i) + "]", lightPositions[i]);
+        shader.setVec3("lightColors[" + std::to_string(i) + "]", lightColors[i]);
     }
-
-    std::vector<glm::vec3> ssaoNoise;
-    for (unsigned int i = 0; i < 16; i++)
-    {
-        glm::vec3 noise(
-            randomFloats(generator) * 2.0 - 1.0,
-            randomFloats(generator) * 2.0 - 1.0,
-            0.0);
-        ssaoNoise.push_back(noise);
-    }
-
-    // Noise texture (for ssao noise)
-    unsigned int noiseTexture;
-    glGenTextures(1, &noiseTexture);
-    glBindTexture(GL_TEXTURE_2D, noiseTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // SSAO objects n such:
-    unsigned int ssaoFBO;
-    glGenFramebuffers(1, &ssaoFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
-
-    unsigned int ssaoColorBuffer;
-    glGenTextures(1, &ssaoColorBuffer);
-    glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCR_WIDTH, SCR_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "SSAO Framebuffer not complete!" << std::endl;
-
-    unsigned int ssaoBlurFBO, ssaoColorBufferBlur;
-    glGenFramebuffers(1, &ssaoBlurFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFBO);
-    glGenTextures(1, &ssaoColorBufferBlur);
-    glBindTexture(GL_TEXTURE_2D, ssaoColorBufferBlur);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, SCR_WIDTH, SCR_HEIGHT, 0, GL_RED, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlur, 0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    lPassShader.use();
-    lPassShader.setInt("gPosition", 0);
-    lPassShader.setInt("gNormal", 1);
-    lPassShader.setInt("gAlbedo", 2);
-    lPassShader.setInt("ssao", 3);
-
-    ssaoShader.use();
-    ssaoShader.setInt("gPosition", 0);
-    ssaoShader.setInt("gNormal", 1);
-    ssaoShader.setInt("texNoise", 2);
     
     // RENDER LOOP:
     while (!glfwWindowShouldClose(window))
@@ -288,79 +155,48 @@ int main()
         processInput(window);
 
         // Render
-        glClearColor(0, 0, 0, 1);
+        glClearColor(0.1, 0.1, 0.1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 1. Geometry Pass
-        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        shader.use();
         glm::mat4 view = camera.GetViewMatrix();
-        
-        gPassShader.use();
-        gPassShader.setMat4("projection", projection);
-        gPassShader.setMat4("view", view);
-        
-        // Room cube
+        shader.setMat4("view", view);
+        shader.setVec3("camPos", camera.Position);
+
+        // Render spheres:
         glm::mat4 model = glm::mat4(1.0);
-        model = glm::translate(model, glm::vec3(0.0, 7.0, 0.0));
-        model = glm::scale(model, glm::vec3(7.5, 7.5, 7.5));
-        gPassShader.setMat4("model", model);
-        gPassShader.setInt("invertedNormals", 1);
-        renderCube();
-        gPassShader.setInt("invertedNormals", 0);
-
-        // Backpack model on the floor
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0, 0.0, 0.0));
-        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0, 0.0, 0.0));
-        model = glm::scale(model, glm::vec3(0.25f));
-        gPassShader.setMat4("model", model);
-        backpack.Draw(gPassShader);
-
-        // 2. SSAO
-        glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ssaoShader.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gPosition);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, gNormal);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, noiseTexture);
-        
-        for (unsigned int i = 0; i < 64; i++)
-            ssaoShader.setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
-        ssaoShader.setMat4("projection", projection);
-        renderQuad();
-
-        // 3. Lighting Pass
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        lPassShader.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gPosition);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, gNormal);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, gAlbedo);
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
-
-        const float linear = 0.09f;
-        const float quadratic = 0.032f;
-
-        for (unsigned int i = 0; i < lightPositions.size(); i++)
+        for (int row = 0; row < numRows; row++)
         {
-            string index = std::to_string(i);
-            lPassShader.setVec3("lights[" + index + "].Position", lightPositions[i]);
-            lPassShader.setVec3("lights[" + index + "].Color", lightColors[i]);
-            lPassShader.setFloat("lights[" + index + "].Linear", linear);
-            lPassShader.setFloat("lights[" + index + "].Quadratic", quadratic);
+            shader.setFloat("metallic", (float)row / (float)numRows);
+            for (int col = 0; col < numColumns; col++)
+            {
+                shader.setFloat("roughness", glm::clamp((float)col / (float)numColumns, 0.05f, 1.0f));
+
+                model = glm::mat4(1.0);
+                model = glm::translate(model, glm::vec3(
+                    (col - (numColumns / 2)) * spacing,
+                    (row - (numRows / 2)) * spacing,
+                    -10.0
+                ));
+                shader.setMat4("model", model);
+                shader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+                renderSphere();
+            }
         }
-        lPassShader.setVec3("viewPos", camera.Position);
-        renderQuad();
+
+        for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); i++)
+        {
+            glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
+            shader.setVec3("lightPositions[" + std::to_string(i) + "]", newPos);
+            shader.setVec3("lightColors[" + std::to_string(i) + "]", lightColors[i]);
+
+            model = glm::mat4(1.0);
+            model = glm::translate(model, newPos);
+            model = glm::scale(model, glm::vec3(0.5));
+            shader.setMat4("model", model);
+            shader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+            renderSphere();
+        }
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
@@ -369,18 +205,6 @@ int main()
 
     glfwTerminate();
     return 0;
-}
-
-void setupShader(Shader shader)
-{
-    shader.setMat4("view", camera.GetViewMatrix());
-    shader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), 1200.0f / 900.0f, 0.1f, 100.0f));
-    shader.setVec3("viewPos", camera.Position);
-}
-
-void renderScene(const Shader& shader)
-{
-    
 }
 
 // renderCube() renders a 1x1 3D cube in NDC.
@@ -487,6 +311,102 @@ void renderQuad()
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
+}
+
+// This is just shamefully copy-pasted from the demo: https://learnopengl.com/code_viewer_gh.php?code=src/6.pbr/1.1.lighting/lighting.cpp
+unsigned int sphereVAO = 0;
+unsigned int indexCount;
+void renderSphere()
+{
+    if (sphereVAO == 0)
+    {
+        glGenVertexArrays(1, &sphereVAO);
+
+        unsigned int vbo, ebo;
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ebo);
+
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec2> uv;
+        std::vector<glm::vec3> normals;
+        std::vector<unsigned int> indices;
+
+        const unsigned int X_SEGMENTS = 64;
+        const unsigned int Y_SEGMENTS = 64;
+        const float PI = 3.14159265359f;
+        for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+        {
+            for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+            {
+                float xSegment = (float)x / (float)X_SEGMENTS;
+                float ySegment = (float)y / (float)Y_SEGMENTS;
+                float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+                float yPos = std::cos(ySegment * PI);
+                float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+
+                positions.push_back(glm::vec3(xPos, yPos, zPos));
+                uv.push_back(glm::vec2(xSegment, ySegment));
+                normals.push_back(glm::vec3(xPos, yPos, zPos));
+            }
+        }
+
+        bool oddRow = false;
+        for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
+        {
+            if (!oddRow) // even rows: y == 0, y == 2; and so on
+            {
+                for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+                {
+                    indices.push_back(y * (X_SEGMENTS + 1) + x);
+                    indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                }
+            }
+            else
+            {
+                for (int x = X_SEGMENTS; x >= 0; --x)
+                {
+                    indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                    indices.push_back(y * (X_SEGMENTS + 1) + x);
+                }
+            }
+            oddRow = !oddRow;
+        }
+        indexCount = static_cast<unsigned int>(indices.size());
+
+        std::vector<float> data;
+        for (unsigned int i = 0; i < positions.size(); ++i)
+        {
+            data.push_back(positions[i].x);
+            data.push_back(positions[i].y);
+            data.push_back(positions[i].z);
+            if (normals.size() > 0)
+            {
+                data.push_back(normals[i].x);
+                data.push_back(normals[i].y);
+                data.push_back(normals[i].z);
+            }
+            if (uv.size() > 0)
+            {
+                data.push_back(uv[i].x);
+                data.push_back(uv[i].y);
+            }
+        }
+        glBindVertexArray(sphereVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), &data[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        unsigned int stride = (3 + 2 + 3) * sizeof(float);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
+    }
+
+    glBindVertexArray(sphereVAO);
+    glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 }
 
 unsigned int loadTexture(char const* path)
